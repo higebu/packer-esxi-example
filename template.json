@@ -1,0 +1,85 @@
+{
+  "variables": {
+    "iso_file": "https://bintray.com/artifact/download/vmware/photon/iso/1.0TP2/x86_64/photon-minimal-1.0TP2.iso",
+    "iso_checksum_value": "a47567368458acd8c8ef5f1e3f793c5329063dac",
+    "product_name": "Photon",
+    "product_version": "1.0",
+    "headless": "false",
+    "disk_size": "20480",
+    "ssh_password": "VMware123!",
+    "ssh_wait_timeout": "5m",
+    "shutdown_command": "shutdown -h now"
+  },
+  "builders": [
+    {
+      "vm_name": "photon",
+      "vmdk_name": "photon-disk0",
+      "type": "vmware-iso",
+      "headless": "{{user `headless`}}",
+      "disk_size": "{{user `disk_size`}}",
+      "disk_type_id": "thin",
+      "guest_os_type": "other3xlinux-64",
+      "iso_url": "{{user `iso_file`}}",
+      "iso_checksum": "{{user `iso_checksum_value`}}",
+      "iso_checksum_type": "sha1",
+      "ssh_username": "root",
+      "ssh_password": "{{user `ssh_password`}}",
+      "ssh_wait_timeout": "{{user `ssh_wait_timeout`}}",
+      "shutdown_command": "shutdown -h now",
+      "http_directory": ".",
+      "output_directory": "photon",
+      "remote_type": "esx5",
+      "remote_host": "{{user `remote_host`}}",
+      "remote_username": "root",
+      "remote_password": "vagrant",
+      "remote_datastore": "datastore1",
+      "format": "ovf",
+      "boot_command": [
+        "<enter><wait10><wait10>",
+        "<enter><wait>",
+        "<enter><wait>",
+        "<enter><wait10>",
+        "<enter><wait>",
+        "<enter><wait>",
+        "{{user `ssh_password`}}<enter><wait>",
+        "{{user `ssh_password`}}<enter>",
+        "<wait10><wait10>",
+        "<enter>",
+        "<wait10><wait10><wait10>",
+        "root<enter><wait>{{user `ssh_password`}}<enter><wait>",
+        "sed -i -e 's/PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config<enter>",
+        "<wait>",
+        "systemctl restart sshd.service<enter>",
+        "ping -c 10 8.8.8.8<enter>",
+        "<wait10>"
+      ],
+      "vmx_data": {
+        "cpuid.coresPerSocket": "1",
+        "memsize": "512",
+        "numvcpus": "1",
+        "virtualhw.version": "8",
+        "ethernet0.present": "TRUE",
+        "ethernet0.startConnected": "TRUE",
+        "ethernet0.virtualDev": "vmxnet3",
+        "ethernet0.networkName": "VM Network",
+        "ethernet1.present": "TRUE",
+        "ethernet1.startConnected": "TRUE",
+        "ethernet1.virtualDev": "vmxnet3",
+        "ethernet1.networkName": "VM Network"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/photon-docker.service",
+      "destination": "/lib/systemd/system/docker.service"
+    },
+    {
+      "type": "shell",
+      "script": "scripts/photon-provisioning.sh"
+    }
+  ],
+  "post-processors": [
+  ]
+}
